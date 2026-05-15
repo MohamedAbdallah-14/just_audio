@@ -661,6 +661,55 @@ void runTests() {
     expect(source.sequence.map((s) => s.tag as String?), equals(<String>[]));
   });
 
+  // Regression test for https://github.com/ryanheise/just_audio/issues/1437
+  // move() when newIndex > currentIndex by more than 1 (non-adjacent forward move).
+  // The item must land at newIndex in the result list, not newIndex+1.
+  test('move-forward-non-adjacent', () async {
+    final source = ConcatenatingAudioSource(
+      children: [
+        AudioSource.uri(Uri.parse('https://a.a/a.mp3'), tag: 'a'),
+        AudioSource.uri(Uri.parse('https://b.b/b.mp3'), tag: 'b'),
+        AudioSource.uri(Uri.parse('https://c.c/c.mp3'), tag: 'c'),
+        AudioSource.uri(Uri.parse('https://d.d/d.mp3'), tag: 'd'),
+        AudioSource.uri(Uri.parse('https://e.e/e.mp3'), tag: 'e'),
+      ],
+    );
+
+    // Forward move skipping two positions: item at 0 ends up at index 3.
+    await source.move(0, 3);
+    expect(
+      source.sequence.map((s) => s.tag as String?).toList(),
+      equals(['b', 'c', 'd', 'a', 'e']),
+      reason: 'move(0, 3): a must land at index 3 in the result',
+    );
+
+    // Forward move: item at 1 ends up at index 4 (last position).
+    // Source is now [b,c,d,a,e]; move b (index 0) to index 4.
+    await source.move(0, 4);
+    expect(
+      source.sequence.map((s) => s.tag as String?).toList(),
+      equals(['c', 'd', 'a', 'e', 'b']),
+      reason: 'move(0, 4): b must land at index 4 in the result',
+    );
+
+    // Backward move (already covered by adjacent tests, sanity-check here
+    // with a larger gap): item at 4 ends up at index 1.
+    await source.move(4, 1);
+    expect(
+      source.sequence.map((s) => s.tag as String?).toList(),
+      equals(['c', 'b', 'd', 'a', 'e']),
+      reason: 'move(4, 1): b must land at index 1 in the result',
+    );
+
+    // No-op: moving an item to its own index must leave the list unchanged.
+    await source.move(2, 2);
+    expect(
+      source.sequence.map((s) => s.tag as String?).toList(),
+      equals(['c', 'b', 'd', 'a', 'e']),
+      reason: 'move(2, 2): list must be unchanged',
+    );
+  });
+
   test('sequence-state', () async {
     final player = AudioPlayer();
     expect(player.sequenceState.sequence, equals([]));
