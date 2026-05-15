@@ -701,11 +701,20 @@ void runTests() {
       reason: 'move(4, 1): b must land at index 1 in the result',
     );
 
+    // Backward non-adjacent move to index 0.
+    // Source is now [c,b,d,a,e]; move a (index 3) to index 0.
+    await source.move(3, 0);
+    expect(
+      source.sequence.map((s) => s.tag as String?).toList(),
+      equals(['a', 'c', 'b', 'd', 'e']),
+      reason: 'move(3, 0): a must land at index 0 in the result',
+    );
+
     // No-op: moving an item to its own index must leave the list unchanged.
     await source.move(2, 2);
     expect(
       source.sequence.map((s) => s.tag as String?).toList(),
-      equals(['c', 'b', 'd', 'a', 'e']),
+      equals(['a', 'c', 'b', 'd', 'e']),
       reason: 'move(2, 2): list must be unchanged',
     );
   });
